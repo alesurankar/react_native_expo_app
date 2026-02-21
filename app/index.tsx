@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function Home() {
   const numCards = 2;
   const [flipped, setFlipped] = useState<boolean[]>(Array(numCards).fill(false));
-
+  const [isAnimating, setIsAnimating] = useState(false);
   type CardOutcome = 'rocket' | 'close';
 
   const [outcomes, setOutcomes] = useState<CardOutcome[]>(
@@ -19,50 +19,53 @@ export default function Home() {
     .map(() => useRef(new Animated.Value(0)).current);
 
   const flipCard = (index: number) => {
-  if (flipped[index]) return;
+    
+    if (flipped[index] || isAnimating) return;
+    setIsAnimating(true);
 
-  // flip forward
-  setFlipped(prev => {
-    const next = [...prev];
-    next[index] = true;
-    return next;
-  });
-
-  Animated.spring(flipAnim[index], {
-    toValue: 180,
-    friction: 8,
-    tension: 10,
-    useNativeDriver: true,
-  }).start();
-
-  // flip back after 2 seconds
-  setTimeout(() => {
+    // flip forward
     setFlipped(prev => {
       const next = [...prev];
-      next[index] = false;
+      next[index] = true;
       return next;
     });
 
     Animated.spring(flipAnim[index], {
-      toValue: 0,
+      toValue: 180,
       friction: 8,
       tension: 10,
       useNativeDriver: true,
-    }).start(() => {
-      // runs AFTER animation finishes
+    }).start();
+
+    // flip back after 2 seconds
+    setTimeout(() => {
+      setIsAnimating(false);
       setFlipped(prev => {
         const next = [...prev];
         next[index] = false;
         return next;
       });
 
-      // shuffle AFTER card is fully closed
-      setOutcomes(prev =>
-        prev.map(() => (Math.random() > 0.5 ? 'rocket' : 'close'))
-      );
-    });
-  }, 1000);
-};
+      Animated.spring(flipAnim[index], {
+        toValue: 0,
+        friction: 8,
+        tension: 10,
+        useNativeDriver: true,
+      }).start(() => {
+        // runs AFTER animation finishes
+        setFlipped(prev => {
+          const next = [...prev];
+          next[index] = false;
+          return next;
+        });
+
+        // shuffle AFTER card is fully closed
+        setOutcomes(prev =>
+          prev.map(() => (Math.random() > 0.5 ? 'rocket' : 'close'))
+        );
+      });
+    }, 1000);
+  };
 
   const frontInterpolate = (index: number) =>
     flipAnim[index].interpolate({
@@ -89,7 +92,6 @@ export default function Home() {
                 style={[
                   styles.card,
                   { transform: [{ rotateY: frontInterpolate(i) }] },
-                  { backfaceVisibility: 'hidden' }, // just hide the front when flipped
                 ]}
               >
                 <Ionicons name="help-circle" size={60} color="#22d3ee" />
@@ -100,7 +102,6 @@ export default function Home() {
                   styles.card,
                   styles.cardBack,
                   { transform: [{ rotateY: backInterpolate(i) }] },
-                  { backfaceVisibility: 'hidden' }, // also hide back when not flipped
                 ]}
               >
                 <Ionicons
