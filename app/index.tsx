@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View, Button, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 
 export default function Home() {
@@ -13,10 +14,14 @@ export default function Home() {
       />
 
       <Pressable
-        style={styles.pressable}
+        style={({pressed}) => [
+          styles.pressable,
+          { transform: [{ scale: pressed ? 0.95 : 1 }] },
+        ]}
         onPress={() => setMessage("You pressed the Pressable")}
       >
-        <Text style={styles.pressableText}>Pressable</Text>
+        <Ionicons name="rocket" size={20} color="white"/>
+        <Text style={styles.pressableText}>Launch</Text>
       </Pressable>
     </View>
   );
