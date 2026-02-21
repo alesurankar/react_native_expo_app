@@ -1,10 +1,9 @@
-import { StyleSheet, Text, View, Pressable, Animated, Vibration } from 'react-native';
+import { StyleSheet, Text, View, Pressable, Animated } from 'react-native';
 import { useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function Home() {
   const numCards = 2;
-
   const [flipped, setFlipped] = useState<boolean[]>(Array(numCards).fill(false));
 
   type CardOutcome = 'rocket' | 'close';
@@ -20,43 +19,50 @@ export default function Home() {
     .map(() => useRef(new Animated.Value(0)).current);
 
   const flipCard = (index: number) => {
-    if (flipped[index]) return; // already flipped
+  if (flipped[index]) return;
 
-    // Flip forward
-    setFlipped((prev) => {
-      const newFlipped = [...prev];
-      newFlipped[index] = true;
-      return newFlipped;
+  // flip forward
+  setFlipped(prev => {
+    const next = [...prev];
+    next[index] = true;
+    return next;
+  });
+
+  Animated.spring(flipAnim[index], {
+    toValue: 180,
+    friction: 8,
+    tension: 10,
+    useNativeDriver: true,
+  }).start();
+
+  // flip back after 2 seconds
+  setTimeout(() => {
+    setFlipped(prev => {
+      const next = [...prev];
+      next[index] = false;
+      return next;
     });
 
     Animated.spring(flipAnim[index], {
-      toValue: 180,
+      toValue: 0,
       friction: 8,
       tension: 10,
       useNativeDriver: true,
-    }).start();
-
-    // Flip back after 2 seconds
-    setTimeout(() => {
-      Animated.spring(flipAnim[index], {
-        toValue: 0,
-        friction: 8,
-        tension: 10,
-        useNativeDriver: true,
-      }).start();
-
-      setFlipped((prev) => {
-        const newFlipped = [...prev];
-        newFlipped[index] = false;
-        return newFlipped;
+    }).start(() => {
+      // runs AFTER animation finishes
+      setFlipped(prev => {
+        const next = [...prev];
+        next[index] = false;
+        return next;
       });
 
-      // Shuffle outcomes **after the card flips back**
-      setOutcomes((prev) =>
+      // shuffle AFTER card is fully closed
+      setOutcomes(prev =>
         prev.map(() => (Math.random() > 0.5 ? 'rocket' : 'close'))
       );
-    }, 2000);
-  };
+    });
+  }, 1000);
+};
 
   const frontInterpolate = (index: number) =>
     flipAnim[index].interpolate({
