@@ -7,23 +7,17 @@ export default function Home() {
 
   const [flipped, setFlipped] = useState<boolean[]>(Array(numCards).fill(false));
 
-  // Animated values for each card
+  type CardOutcome = 'rocket' | 'close';
+
+  const [outcomes, setOutcomes] = useState<CardOutcome[]>(
+    Array(numCards)
+      .fill(0)
+      .map(() => (Math.random() > 0.5 ? 'rocket' : 'close'))
+  );
+
   const flipAnim: Animated.Value[] = Array(numCards)
     .fill(0)
     .map(() => useRef(new Animated.Value(0)).current);
-
-  // Interpolation for rotation
-  const frontInterpolate = (index: number) =>
-    flipAnim[index].interpolate({
-      inputRange: [0, 180],
-      outputRange: ['0deg', '180deg'],
-    });
-
-  const backInterpolate = (index: number) =>
-    flipAnim[index].interpolate({
-      inputRange: [0, 180],
-      outputRange: ['180deg', '360deg'],
-    });
 
   const flipCard = (index: number) => {
     if (flipped[index]) return; // already flipped
@@ -56,8 +50,25 @@ export default function Home() {
         newFlipped[index] = false;
         return newFlipped;
       });
+
+      // Shuffle outcomes **after the card flips back**
+      setOutcomes((prev) =>
+        prev.map(() => (Math.random() > 0.5 ? 'rocket' : 'close'))
+      );
     }, 2000);
   };
+
+  const frontInterpolate = (index: number) =>
+    flipAnim[index].interpolate({
+      inputRange: [0, 180],
+      outputRange: ['0deg', '180deg'],
+    });
+
+  const backInterpolate = (index: number) =>
+    flipAnim[index].interpolate({
+      inputRange: [0, 180],
+      outputRange: ['180deg', '360deg'],
+    });
 
   return (
     <View style={styles.container}>
@@ -87,9 +98,9 @@ export default function Home() {
                 ]}
               >
                 <Ionicons
-                  name={Math.random() > 0.5 ? 'rocket' : 'close'}
+                  name={outcomes[i]}
                   size={60}
-                  color={Math.random() > 0.5 ? '#22d3ee' : 'red'}
+                  color={outcomes[i] === 'rocket' ? '#22d3ee' : 'red'}
                 />
               </Animated.View>
             </View>
@@ -129,6 +140,12 @@ const styles = StyleSheet.create({
   cardBack: {
     position: 'absolute',
     top: 0,
+    left: 0,
+    width: 100,
+    height: 100,
     backgroundColor: '#1e293b',
-  },
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  }
 });
