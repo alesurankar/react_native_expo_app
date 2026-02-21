@@ -1,28 +1,101 @@
-import { StyleSheet, Text, View, Button, Pressable } from 'react-native';
+import { StyleSheet, Text, View, Pressable, Animated, Vibration } from 'react-native';
+import { useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
 
 export default function Home() {
-  const [message, setMessage] = useState("Hello from React Native 🚀");
+  const numCards = 2;
+
+  const [flipped, setFlipped] = useState<boolean[]>(Array(numCards).fill(false));
+
+  // Animated values for each card
+  const flipAnim: Animated.Value[] = Array(numCards)
+    .fill(0)
+    .map(() => useRef(new Animated.Value(0)).current);
+
+  // Interpolation for rotation
+  const frontInterpolate = (index: number) =>
+    flipAnim[index].interpolate({
+      inputRange: [0, 180],
+      outputRange: ['0deg', '180deg'],
+    });
+
+  const backInterpolate = (index: number) =>
+    flipAnim[index].interpolate({
+      inputRange: [0, 180],
+      outputRange: ['180deg', '360deg'],
+    });
+
+  const flipCard = (index: number) => {
+    if (flipped[index]) return; // already flipped
+
+    // Flip forward
+    setFlipped((prev) => {
+      const newFlipped = [...prev];
+      newFlipped[index] = true;
+      return newFlipped;
+    });
+
+    Animated.spring(flipAnim[index], {
+      toValue: 180,
+      friction: 8,
+      tension: 10,
+      useNativeDriver: true,
+    }).start();
+
+    // Flip back after 2 seconds
+    setTimeout(() => {
+      Animated.spring(flipAnim[index], {
+        toValue: 0,
+        friction: 8,
+        tension: 10,
+        useNativeDriver: true,
+      }).start();
+
+      setFlipped((prev) => {
+        const newFlipped = [...prev];
+        newFlipped[index] = false;
+        return newFlipped;
+      });
+    }, 2000);
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>{message}</Text>
+      <Text style={styles.title}>XP Card Flip</Text>
 
-      <Button
-        title="Press Button"
-        onPress={() => setMessage("You pressed the Button")}
-      />
+      <View style={styles.cardsContainer}>
+        {Array.from({ length: numCards }).map((_, i: number) => (
+          <Pressable key={i} onPress={() => flipCard(i)}>
+            <View>
+              {/* Front */}
+              <Animated.View
+                style={[
+                  styles.card,
+                  { transform: [{ rotateY: frontInterpolate(i) }] },
+                  { backfaceVisibility: 'hidden' }, // just hide the front when flipped
+                ]}
+              >
+                <Ionicons name="help-circle" size={60} color="#22d3ee" />
+              </Animated.View>
 
-      <Pressable
-        style={({pressed}) => [
-          styles.pressable,
-          { transform: [{ scale: pressed ? 0.95 : 1 }] },
-        ]}
-        onPress={() => setMessage("You pressed the Pressable")}
-      >
-        <Ionicons name="rocket" size={20} color="white"/>
-        <Text style={styles.pressableText}>Launch</Text>
-      </Pressable>
+              <Animated.View
+                style={[
+                  styles.card,
+                  styles.cardBack,
+                  { transform: [{ rotateY: backInterpolate(i) }] },
+                  { backfaceVisibility: 'hidden' }, // also hide back when not flipped
+                ]}
+              >
+                <Ionicons
+                  name={Math.random() > 0.5 ? 'rocket' : 'close'}
+                  size={60}
+                  color={Math.random() > 0.5 ? '#22d3ee' : 'red'}
+                />
+              </Animated.View>
+            </View>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
@@ -32,18 +105,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 20,
+    backgroundColor: '#0f172a',
+    gap: 40,
   },
-  text: {
-    fontSize: 18,
-  },
-  pressable: {
-    backgroundColor: '#00ffcc',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 10,
-  },
-  pressableText: {
+  title: {
+    fontSize: 28,
     fontWeight: 'bold',
+    color: 'white',
+  },
+  cardsContainer: {
+    flexDirection: 'row',
+    gap: 40,
+  },
+  card: {
+    width: 100,
+    height: 100,
+    backgroundColor: '#111',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+    backfaceVisibility: 'hidden',
+  },
+  cardBack: {
+    position: 'absolute',
+    top: 0,
+    backgroundColor: '#1e293b',
   },
 });
